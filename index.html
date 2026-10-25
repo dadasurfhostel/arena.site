@@ -656,6 +656,32 @@
 <button id="modFab" onclick="toggleModPanel()" title="Open modification panel (M)" class="fixed bottom-5 left-5 z-[95] flex items-center gap-2 bg-[#FFD400] border-[2.5px] border-[#141311] rounded-full pl-4 pr-5 py-3 font-bold text-sm hover:bg-[#141311] hover:text-[#FFD400] transition-colors" style="box-shadow:4px 4px 0 #141311; transform:rotate(-2deg)">
   <i data-lucide="sliders-horizontal" class="w-5 h-5"></i> MODIFY
 </button>
+<div id="modPinWrap" class="fixed inset-0 z-[160] hidden items-center justify-center p-4">
+  <div class="absolute inset-0 bg-[#141311]/70 backdrop-blur-sm" onclick="modPinClose()"></div>
+  <div id="modPinCard" class="relative bg-[#FAF3E7] border-[3px] border-[#141311] rounded-3xl w-full max-w-[300px] p-6 text-center" style="box-shadow:8px 8px 0 #FF5C00">
+    <span class="mx-auto w-14 h-14 rounded-2xl bg-[#141311] text-[#FFD400] flex items-center justify-center"><i data-lucide="lock-keyhole" class="w-7 h-7"></i></span>
+    <p class="font-display text-xl uppercase mt-3">Owner only</p>
+    <p class="text-[12px] font-bold opacity-50 mt-1">Enter the 4-digit mod PIN</p>
+    <div id="modPinDots" class="flex justify-center gap-2.5 my-4">
+      <span class="mod-pin-dot"></span><span class="mod-pin-dot"></span><span class="mod-pin-dot"></span><span class="mod-pin-dot"></span>
+    </div>
+    <div class="grid grid-cols-3 gap-2" id="modPinPad">
+      <button class="mod-pin-key" onclick="modPinKey('1')">1</button>
+      <button class="mod-pin-key" onclick="modPinKey('2')">2</button>
+      <button class="mod-pin-key" onclick="modPinKey('3')">3</button>
+      <button class="mod-pin-key" onclick="modPinKey('4')">4</button>
+      <button class="mod-pin-key" onclick="modPinKey('5')">5</button>
+      <button class="mod-pin-key" onclick="modPinKey('6')">6</button>
+      <button class="mod-pin-key" onclick="modPinKey('7')">7</button>
+      <button class="mod-pin-key" onclick="modPinKey('8')">8</button>
+      <button class="mod-pin-key" onclick="modPinKey('9')">9</button>
+      <button class="mod-pin-key fn" onclick="modPinKey('C')">CLR</button>
+      <button class="mod-pin-key" onclick="modPinKey('0')">0</button>
+      <button class="mod-pin-key fn" onclick="modPinKey('B')">⌫</button>
+    </div>
+    <p id="modPinErr" class="hidden text-[12px] font-bold text-[#FF5C00] mt-3">Wrong PIN — try again</p>
+  </div>
+</div>
 <div id="modOverlay" onclick="toggleModPanel(false)" class="fixed inset-0 z-[140] hidden bg-[#141311]/55 backdrop-blur-[2px]"></div>
 <aside id="modPanel" class="fixed top-0 left-0 h-full w-[392px] max-w-[94vw] z-[150] bg-[#FAF3E7] border-r-[3px] border-[#141311] flex flex-col" aria-label="Modification panel">
   <div class="bg-[#141311] text-[#FAF3E7] px-4 py-4 flex items-center justify-between shrink-0">
@@ -1177,6 +1203,14 @@ document.addEventListener('mousemove', e=>{
   .mod-btn:hover{ transform:translateY(-1px); box-shadow:3px 3px 0 #141311; background:#fff; }
   .mod-btn.dark{ background:#141311; color:#FFD400; }
   .mod-btn.danger.armed{ background:#FF5C00; color:#fff; border-color:#FF5C00; }
+  .mod-pin-dot{ width:16px; height:16px; border-radius:99px; border:2.5px solid #141311; background:#fff; transition:all .15s; }
+  .mod-pin-dot.on{ background:#141311; transform:scale(1.2); }
+  .mod-pin-key{ border:2.5px solid #141311; border-radius:14px; background:#fff; font-weight:800; font-size:18px; padding:10px 0; transition:all .12s; cursor:pointer; }
+  .mod-pin-key:hover{ background:#FFD400; transform:translateY(-1px); box-shadow:3px 3px 0 #141311; }
+  .mod-pin-key:active{ transform:translateY(1px); box-shadow:none; }
+  .mod-pin-key.fn{ font-size:12px; background:#FAF3E7; letter-spacing:.08em; }
+  @keyframes pinShake{ 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-8px)} 40%,80%{transform:translateX(8px)} }
+  .pin-shake{ animation:pinShake .4s ease; }
 </style>
 <script>
 /* ═══════════ MODIFICATION PANEL ═══════════ */
@@ -1394,19 +1428,105 @@ if(typeof window.filterRooms === 'function'){
 }
 
 /* ── panel UI ── */
+/* ── PIN lock (default 2005) + stealth ── */
+const PIN_KEY = 'dadaModPin';
+let modPin = '2005', pinBuf = '', modStealthOn = false;
+try{ const s = localStorage.getItem(PIN_KEY); if(s && /^\d{4}$/.test(s)) modPin = s; }catch(e){}
+try{ modStealthOn = localStorage.getItem('dadaModStealth') === '1'; }catch(e){}
+function modUnlocked(){ try{ return sessionStorage.getItem('dadaModOpen') === '1'; }catch(e){ return window.__modUnl === true; } }
+function modSetUnlocked(){ try{ sessionStorage.setItem('dadaModOpen', '1'); }catch(e){ window.__modUnl = true; } }
+window.modLockNow = function(){
+  try{ sessionStorage.removeItem('dadaModOpen'); }catch(e){} window.__modUnl = false;
+  const p = document.getElementById('modPanel'), o = document.getElementById('modOverlay');
+  p.classList.remove('open'); o.classList.add('hidden');
+  if(typeof toast === 'function') toast('Mod panel locked', 'lock');
+};
+function paintPinDots(){
+  document.querySelectorAll('#modPinDots .mod-pin-dot').forEach((d, i) => d.classList.toggle('on', i < pinBuf.length));
+}
+window.modPinOpen = function(){
+  pinBuf = ''; paintPinDots();
+  document.getElementById('modPinErr').classList.add('hidden');
+  const w = document.getElementById('modPinWrap');
+  w.classList.remove('hidden'); w.classList.add('flex');
+  if(typeof refreshIcons === 'function') refreshIcons();
+};
+window.modPinClose = function(){
+  const w = document.getElementById('modPinWrap');
+  w.classList.add('hidden'); w.classList.remove('flex'); pinBuf = '';
+};
+window.modPinKey = function(k){
+  if(k === 'C') pinBuf = '';
+  else if(k === 'B') pinBuf = pinBuf.slice(0, -1);
+  else if(pinBuf.length < 4 && /^\d$/.test(k)) pinBuf += k;
+  paintPinDots();
+  document.getElementById('modPinErr').classList.add('hidden');
+  if(pinBuf.length === 4) setTimeout(checkModPin, 140);
+};
+function checkModPin(){
+  if(pinBuf === modPin){
+    modSetUnlocked(); modPinClose(); openModPanelNow();
+  } else {
+    document.getElementById('modPinErr').classList.remove('hidden');
+    const card = document.getElementById('modPinCard');
+    card.classList.remove('pin-shake'); void card.offsetWidth; card.classList.add('pin-shake');
+    pinBuf = ''; setTimeout(paintPinDots, 200);
+  }
+}
+window.modChangePin = function(){
+  const cur = (document.getElementById('modPinCur') || {}).value || '';
+  const nw = (document.getElementById('modPinNew') || {}).value || '';
+  if(cur !== modPin){ if(typeof toast === 'function') toast('Current PIN is wrong', 'triangle-alert'); return; }
+  if(!/^\d{4}$/.test(nw)){ if(typeof toast === 'function') toast('New PIN must be 4 digits', 'triangle-alert'); return; }
+  modPin = nw;
+  try{ localStorage.setItem(PIN_KEY, nw); }catch(e){}
+  renderModPanel();
+  if(typeof toast === 'function') toast('PIN updated', 'key-round');
+};
+window.modPinReveal = function(btn){
+  const s = document.getElementById('modPinShow'); if(!s) return;
+  const show = s.textContent.indexOf('•') > -1;
+  s.textContent = show ? modPin : '••••';
+  btn.innerHTML = '<i data-lucide="' + (show ? 'eye-off' : 'eye') + '" class="w-4 h-4"></i>';
+  if(typeof refreshIcons === 'function') refreshIcons();
+};
+function applyStealth(){
+  const f = document.getElementById('modFab'); if(f) f.style.display = modStealthOn ? 'none' : '';
+  const fl = document.getElementById('modFootLink'); if(fl) fl.style.display = modStealthOn ? 'none' : '';
+}
+window.modStealth = function(on){
+  modStealthOn = !!on;
+  try{ localStorage.setItem('dadaModStealth', modStealthOn ? '1' : '0'); }catch(e){}
+  applyStealth();
+  if(typeof toast === 'function') toast(modStealthOn ? 'Stealth on — press Shift+M + PIN to open' : 'Stealth off', 'eye-off');
+};
+function openModPanelNow(){
+  const p = document.getElementById('modPanel'), o = document.getElementById('modOverlay');
+  p.classList.add('open'); o.classList.remove('hidden');
+  if(firstOpen){ firstOpen = false; if(typeof toast === 'function') toast('Mod panel ready — changes save automatically', 'sliders-horizontal'); }
+}
 window.toggleModPanel = function(force){
   const p = document.getElementById('modPanel'), o = document.getElementById('modOverlay');
   const open = (typeof force === 'boolean') ? force : !p.classList.contains('open');
+  if(open && !modUnlocked()){ modPinOpen(); return; }
   p.classList.toggle('open', open);
   o.classList.toggle('hidden', !open);
   if(open && firstOpen){ firstOpen = false; if(typeof toast === 'function') toast('Mod panel ready — changes save automatically', 'sliders-horizontal'); }
 };
 window.modTab = function(t){ activeTab = t; renderModPanel(); };
 document.addEventListener('keydown', e => {
+  const pinOpen = !document.getElementById('modPinWrap').classList.contains('hidden');
+  if(pinOpen){
+    if(/^\d$/.test(e.key)) modPinKey(e.key);
+    else if(e.key === 'Backspace') modPinKey('B');
+    else if(e.key === 'Escape') modPinClose();
+    return;
+  }
   if((e.key === 'm' || e.key === 'M') && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName || '')
     && document.getElementById('bookingModal').classList.contains('hidden')
     && document.getElementById('lightbox').classList.contains('hidden')) toggleModPanel();
 });
+applyStealth();
 
 const fld = (label, path, val, hint, type) => '<label class="mod-label">' + label + '</label>'
   + '<input class="' + (type || 'mod-input') + '" value="' + escHtml(val) + '" oninput="modSet(\'' + path + '\', this.value)">' + (hint ? '<p class="mod-hint">' + hint + '</p>' : '');
@@ -1489,7 +1609,13 @@ window.renderModPanel = function(){
       + '<div class="mod-sec"><p class="mod-sec-t"><i data-lucide="file-json" class="w-3.5 h-3.5"></i>Backup</p><div class="flex flex-col gap-2">'
       + '<button class="mod-btn dark" onclick="modExport()"><i data-lucide="download" class="w-4 h-4"></i>Download settings JSON</button>'
       + '<button class="mod-btn" onclick="modCopyJson()"><i data-lucide="clipboard-copy" class="w-4 h-4"></i>Copy JSON to clipboard</button>'
-      + '</div></div><div class="mod-sec"><p class="mod-sec-t"><i data-lucide="triangle-alert" class="w-3.5 h-3.5"></i>Danger zone</p>'
+      + '</div></div><div class="mod-sec"><p class="mod-sec-t"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i>Security · PIN lock</p>'
+      + '<p class="text-[13px] font-bold flex items-center gap-2 flex-wrap">Panel PIN: <span class="font-mono bg-[#FAF3E7] border-2 border-[#141311] rounded-lg px-2.5 py-1" id="modPinShow">••••</span><button onclick="modPinReveal(this)" class="w-8 h-8 rounded-full border-2 border-[#141311] bg-white flex items-center justify-center" title="Show PIN"><i data-lucide="eye" class="w-4 h-4"></i></button></p>'
+      + '<div class="mod-row"><div><label class="mod-label">Current PIN</label><input id="modPinCur" inputmode="numeric" maxlength="4" class="mod-input font-mono" placeholder="••••"></div><div><label class="mod-label">New PIN</label><input id="modPinNew" inputmode="numeric" maxlength="4" class="mod-input font-mono" placeholder="4 digits"></div></div>'
+      + '<button class="mod-btn mt-2.5" onclick="modChangePin()"><i data-lucide="key-round" class="w-4 h-4"></i>Update PIN</button>'
+      + '<div class="mod-toggle-row" style="margin-top:10px"><span>Stealth mode <span class="opacity-50 font-medium">— hide MODIFY button + footer link (Shift+M still opens)</span></span><label class="switch"><input type="checkbox" ' + (modStealthOn ? 'checked' : '') + ' onchange="modStealth(this.checked)"><span class="track"></span></label></div>'
+      + '<button class="mod-btn mt-2.5" onclick="modLockNow()"><i data-lucide="lock" class="w-4 h-4"></i>Lock panel now</button>'
+      + '</div><div class="mod-sec"><p class="mod-sec-t"><i data-lucide="triangle-alert" class="w-3.5 h-3.5"></i>Danger zone</p>'
       + '<button class="mod-btn danger" id="modResetBtn2" onclick="modReset(this)"><i data-lucide="rotate-ccw" class="w-4 h-4"></i><span>Reset everything to defaults</span></button></div>';
   }
   if(typeof refreshIcons === 'function') refreshIcons();
@@ -1546,10 +1672,12 @@ try{
   const bar = document.querySelector('footer div.border-t');
   if(bar){
     const b = document.createElement('button');
+    b.id = 'modFootLink';
     b.className = 'flex items-center gap-1.5 hover:text-[#FFD400] transition-colors';
     b.innerHTML = '<i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i> Customize this site';
     b.onclick = () => toggleModPanel(true);
     bar.appendChild(b);
+    applyStealth();
   }
 }catch(e){}
 
