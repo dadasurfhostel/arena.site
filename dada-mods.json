@@ -1,0 +1,104 @@
+{
+  "theme": {
+    "sand": "#FAF3E7",
+    "sand2": "#F3E8D3",
+    "ink": "#141311",
+    "sun": "#FF5C00",
+    "banana": "#FFD400",
+    "ocean": "#0B4FD6",
+    "seafoam": "#7DF0C4",
+    "pink": "#FF90E8",
+    "displayFont": "Archivo Black"
+  },
+  "content": {
+    "brand": "DADA SURF HOSTEL",
+    "heroL1": "Sleep",
+    "heroL2": "cheap.",
+    "heroL3": "Surf daily.",
+    "heroSub": "Not a hotel. Not a museum. A beautiful mess by the sea — dorms from {price}, boards on the wall, DJs on the roof, and Anchor Point 10 minutes on foot.",
+    "badge": "tamrghat · Morocco",
+    "rating": "4.9",
+    "reviews": "2,314",
+    "marquee": "Sleep cheap · Surf daily|Tamarghat — Morocco|Dorms from $26|Rooftop bar · Bonfires · Yoga",
+    "ctaTitle": "Your bunk is getting cold.",
+    "ctaSub": "Free cancellation up to 48h. No prepayment. Just vibes and a small deposit for surf camps.",
+    "email": "stay@dada.surf",
+    "phone": "+212600000000",
+    "heroImg": "",
+    "quiverImg": ""
+  },
+  "rooms": {
+    "chaos": {
+      "name": "The Chaos Room",
+      "price": 26,
+      "unit": "/night",
+      "tag": "Most popular",
+      "tagColor": "#FFD400",
+      "rating": "4.8",
+      "visible": true
+    },
+    "demoiselles": {
+      "name": "Les Demoiselles",
+      "price": 32,
+      "unit": "/night",
+      "tag": "Calmest dorm",
+      "tagColor": "#FF90E8",
+      "rating": "5.0",
+      "visible": true
+    },
+    "readymade": {
+      "name": "Ready-Made Double",
+      "price": 79,
+      "unit": "/night",
+      "tag": "Couples pick",
+      "tagColor": "#7DF0C4",
+      "rating": "4.9",
+      "visible": true
+    },
+    "seaview": {
+      "name": "Twin Seaview",
+      "price": 69,
+      "unit": "/night",
+      "tag": "Best view",
+      "tagColor": "#0B4FD6",
+      "rating": "4.9",
+      "visible": true
+    },
+    "nomad": {
+      "name": "Nomad Bunk",
+      "price": 19,
+      "unit": "/night",
+      "tag": "Monthly steal",
+      "tagColor": "#C9B8FF",
+      "rating": "4.9",
+      "visible": true
+    },
+    "camp": {
+      "name": "Full Dada Week",
+      "price": 499,
+      "unit": "/week",
+      "tag": "Best value",
+      "tagColor": "#FF5C00",
+      "rating": "5.0",
+      "visible": true
+    }
+  },
+  "visibility": {
+    "marquee": true,
+    "stay": true,
+    "surf": true,
+    "vibe": true,
+    "events": true,
+    "reviews": true,
+    "location": true,
+    "faq": true,
+    "cta": true
+  },
+  "promo": {
+    "fromPrice": 26,
+    "banner": false,
+    "bannerText": "Winter swell season is ON — 10% off surf camps with code DADA10",
+    "bannerColor": "#FFD400",
+    "paused": false
+  }
+}
